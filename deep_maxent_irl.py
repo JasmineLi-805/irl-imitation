@@ -190,7 +190,6 @@ class TorchLinearReward(nn.Module):
       return [self.fc1.weight.detach().numpy(), self.fc2.weight.detach().numpy()]
 
     def get_rewards(self, states):
-      if type(states)
       with torch.no_grad():
         rewards = self.forward(states).detach().numpy()
       return rewards
