@@ -233,14 +233,14 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     rewards = nn_r.forward(features)
     
     # compute policy 
-    np_rewards = torch.clone(rewards).detach().numpy()
+    np_rewards = rewards.detach().numpy()
     _, policy = value_iteration.value_iteration(P_a, np_rewards, gamma, error=0.01, deterministic=True)
     
     # compute expected svf
     mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
     
     # compute gradients on rewards:
-    grad_r = mu_D - mu_exp
+    grad_r = torch.tensor(mu_D - mu_exp)
     rewards.backward(gradient=grad_r)
     optim.step()
 
