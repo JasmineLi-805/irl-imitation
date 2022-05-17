@@ -173,7 +173,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   return normalize(rewards)
 
 class TorchLinearReward(nn.Module):
-    def __init__(self, n_input, n_h1=400, n_h2=300):
+    def __init__(self, n_input, n_h1=400, n_h2=1):
         super(TorchLinearReward, self).__init__()
         self.fc1 = nn.Linear(in_features=n_input, out_features=n_h1, bias=True)
         self.fc2 = nn.Linear(in_features=n_h1, out_features=n_h2, bias=True)
