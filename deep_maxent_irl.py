@@ -230,13 +230,11 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     
     # compute the reward matrix
     features = torch.tensor(feat_map, dtype=torch.float)
-    print(type(features))
     rewards = nn_r.forward(features)
     
     # compute policy 
-    rewards = rewards.detach().numpy()
-    print(rewards.shape)
-    _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
+    np_rewards = rewards.detach().numpy()
+    _, policy = value_iteration.value_iteration(P_a, np_rewards, gamma, error=0.01, deterministic=True)
     
     # compute expected svf
     mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
