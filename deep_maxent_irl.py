@@ -241,8 +241,8 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     
     # compute gradients on rewards:
     grad_r = torch.tensor(mu_D - mu_exp)
-    print(f'rewards shape: {rewards.shape}')
-    print(f'grad_r shape = {grad_r.shape}')
+    print(rewards.shape)
+    print(grad_r.shape)
     rewards.backward(gradient=grad_r)
     optim.step()
 
