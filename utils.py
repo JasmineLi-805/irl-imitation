@@ -13,6 +13,8 @@ def normalize(vals):
   """
   min_val = np.min(vals)
   max_val = np.max(vals)
+  if max_val - min_val == 0:
+    return vals - min_val
   return (vals - min_val) / (max_val - min_val)
 
 
