@@ -6,7 +6,8 @@ import img_utils
 import tf_utils
 from utils import *
 
-
+import torch
+from torch import nn
 
 class DeepIRLFC:
 
@@ -170,7 +171,83 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   # return sigmoid(normalize(rewards))
   return normalize(rewards)
 
+class TorchLinearReward(nn.Module):
+    def __init__(self, n_input, n_h1=400, n_h2=300):
+        super(TorchLinearReward, self).__init__()
+        self.fc1 = nn.Linear(in_features=n_input, out_features=n_h1, bias=True)
+        self.fc2 = nn.Linear(in_features=n_h1, out_features=n_h2, bias=True)
+        self.act = nn.ELU()
 
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.act(x)
+        x = self.fc2(x)
+        x = self.act(x)
+        return x
 
+    def get_theta(self):
+      return [self.fc1.weight.detach().numpy(), self.fc2.weight.detach().numpy()]
 
+    def get_rewards(self, states):
+      with torch.no_grad():
+        rewards = self.forward(states).detach().numpy()
+      return rewards
 
+def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
+  """
+  Maximum Entropy Inverse Reinforcement Learning (Maxent IRL)
+
+  inputs:
+    feat_map    NxD matrix - the features for each state
+    P_a         NxNxN_ACTIONS matrix - P_a[s0, s1, a] is the transition prob of 
+                                       landing at state s1 when taking action 
+                                       a at state s0
+    gamma       float - RL discount factor
+    trajs       a list of demonstrations
+    lr          float - learning rate
+    n_iters     int - number of optimization steps
+
+  returns
+    rewards     Nx1 vector - recoverred state rewards
+  """
+
+  # tf.set_random_seed(1)
+  
+  N_STATES, _, N_ACTIONS = np.shape(P_a)
+
+  # init nn model
+  nn_r = TorchLinearReward(feat_map.shape[1])
+  optim = torch.optim.SGD(nn_r.parameters(), lr=1e-2, momentum=0.9)
+
+  # find state visitation frequencies using demonstrations
+  mu_D = demo_svf(trajs, N_STATES)
+
+  # training 
+  for iteration in range(n_iters):
+    if iteration % (n_iters/10) == 0:
+      print 'iteration: {}'.format(iteration)
+    
+    # compute the reward matrix
+    features = torch.tensor(feat_map, dtype=torch.float)
+    print(type(features))
+    # feat_map = torch.from_numpy(feat_map)
+    # print(feat_map)
+    rewards = nn_r.forward(features)
+    
+    # compute policy 
+    _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
+    
+    # compute expected svf
+    mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
+    
+    # compute gradients on rewards:
+    grad_r = mu_D - mu_exp
+    rewards.backward(gradient=grad_r)
+    optim.step()
+
+    # apply gradients to the neural network
+    optim.step()
+
+  rewards = nn_r.get_rewards(feat_map)
+  # return sigmoid(normalize(rewards))
+  return normalize(rewards)
