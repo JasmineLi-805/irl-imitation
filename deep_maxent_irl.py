@@ -155,7 +155,6 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     rewards = nn_r.get_rewards(feat_map)
     
     # compute policy 
-    print(rewards.shape)
     _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
     
     # compute expected svf
@@ -163,6 +162,7 @@ def deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     
     # compute gradients on rewards:
     grad_r = mu_D - mu_exp
+    print grad_r
 
     # apply gradients to the neural network
     grad_theta, l2_loss, grad_norm = nn_r.apply_grads(feat_map, grad_r)
@@ -242,6 +242,7 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     # compute gradients on rewards:
     grad_r = torch.tensor(mu_D - mu_exp)
     grad_r = torch.unsqueeze(grad_r, 1)
+    print(grad_r)
     rewards.backward(gradient=grad_r)
 
     # apply gradients to the neural network
