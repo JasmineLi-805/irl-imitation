@@ -243,7 +243,6 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     grad_r = torch.tensor(mu_D - mu_exp)
     grad_r = torch.unsqueeze(grad_r, 1)
     rewards.backward(gradient=grad_r)
-    optim.step()
 
     # apply gradients to the neural network
     optim.step()
