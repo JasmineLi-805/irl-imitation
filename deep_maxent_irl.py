@@ -190,6 +190,7 @@ class TorchLinearReward(nn.Module):
       return [self.fc1.weight.detach().numpy(), self.fc2.weight.detach().numpy()]
 
     def get_rewards(self, states):
+      if type(states)
       with torch.no_grad():
         rewards = self.forward(states).detach().numpy()
       return rewards
@@ -215,6 +216,7 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   # tf.set_random_seed(1)
   
   N_STATES, _, N_ACTIONS = np.shape(P_a)
+  features = torch.tensor(feat_map, dtype=torch.float)
 
   # init nn model
   nn_r = TorchLinearReward(feat_map.shape[1])
@@ -229,7 +231,6 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
       print 'iteration: {}'.format(iteration)
     
     # compute the reward matrix
-    features = torch.tensor(feat_map, dtype=torch.float)
     rewards = nn_r.forward(features)
     
     # compute policy 
@@ -242,14 +243,12 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     # compute gradients on rewards:
     grad_r = torch.tensor(mu_D - mu_exp)
     grad_r = torch.unsqueeze(grad_r, 1)
-    print(rewards.shape)
-    print(grad_r.shape)
     rewards.backward(gradient=grad_r)
     optim.step()
 
     # apply gradients to the neural network
     optim.step()
 
-  rewards = nn_r.get_rewards(feat_map)
+  rewards = nn_r.get_rewards(features)
   # return sigmoid(normalize(rewards))
   return normalize(rewards)
