@@ -233,7 +233,7 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     rewards = nn_r.forward(features)
     
     # compute policy 
-    rewards = rewards.numpy()
+    rewards = rewards.detach().numpy()
     _, policy = value_iteration.value_iteration(P_a, rewards, gamma, error=0.01, deterministic=True)
     
     # compute expected svf
