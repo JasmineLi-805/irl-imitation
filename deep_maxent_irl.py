@@ -240,7 +240,7 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
     
     # compute gradients on rewards:
-    grad_r = torch.tensor(mu_D - mu_exp)
+    grad_r = torch.tensor(mu_exp - mu_D)
     grad_r = torch.unsqueeze(grad_r, 1)
     # print(grad_r)
     optim.zero_grad()
