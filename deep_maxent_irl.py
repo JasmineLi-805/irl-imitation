@@ -219,7 +219,7 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
 
   # init nn model
   nn_r = TorchLinearReward(feat_map.shape[1])
-  optim = torch.optim.SGD(nn_r.parameters(), lr=1e-2, momentum=0.9)
+  optim = torch.optim.SGD(nn_r.parameters(), lr=0.02, momentum=0.9)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
@@ -243,6 +243,7 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     grad_r = torch.tensor(mu_D - mu_exp)
     grad_r = torch.unsqueeze(grad_r, 1)
     print(grad_r)
+    optim.zero_grad()
     rewards.backward(gradient=grad_r)
 
     # apply gradients to the neural network
