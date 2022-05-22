@@ -231,8 +231,6 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     
     # compute the reward matrix
     rewards = nn_r.forward(features)
-    rewards = torch.sum(rewards)
-    print('reward:' + str(rewards))
     
     # compute policy 
     np_rewards = rewards.detach().numpy()
@@ -247,7 +245,8 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     grad_r = torch.tensor(mu_exp - mu_D)
     grad_r = torch.sum(grad_r)
     # grad_r = torch.unsqueeze(grad_r, 1)
-    # print(grad_r)
+    rewards = torch.sum(rewards)
+    print('reward:' + str(rewards) + 'grad_r:' + str(grad_r))
     optim.zero_grad()
     rewards.backward(gradient=grad_r)
 
