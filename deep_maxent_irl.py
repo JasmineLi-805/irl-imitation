@@ -231,7 +231,7 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     
     # compute the reward matrix
     rewards = nn_r.forward(features)
-    print(rewards)
+    print('reward:' + rewards)
     
     # compute policy 
     np_rewards = rewards.detach().numpy()
