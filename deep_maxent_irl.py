@@ -239,6 +239,7 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     
     # compute expected svf
     mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
+    print('mu_exp:' + str(mu_exp))
     
     # compute gradients on rewards:
     grad_r = torch.tensor(mu_exp - mu_D)
