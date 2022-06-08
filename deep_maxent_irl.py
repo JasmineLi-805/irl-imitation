@@ -65,6 +65,47 @@ class DeepIRLFC:
       feed_dict={self.grad_r: grad_r, self.input_s: feat_map})
     return grad_theta, l2_loss, grad_norms
 
+def sample_state_visitation_freq(P_a, gamma, trajs, policy):
+  """
+  sample from non-deterministic agent policy
+  """
+  N_STATES, _, N_ACTIONS = np.shape(P_a)
+
+  agent_trajs = []
+  for traj in trajs:
+    l = len(traj)
+    start_state = traj[0].cur_state
+    for it in range(20):
+      agent_traj = [start_state]
+      state = start_state
+      for t in range(len(traj)-1):
+        action_prob = policy[state]
+        # if action_prob.sum() != 1:
+        #   print(action_prob.sum())
+        assert float("NAN") not in action_prob, "1: " + str(action_prob)
+        action_prob /= action_prob.sum()
+        assert float("NAN") not in action_prob, "2: " + str(action_prob)
+        # try:
+        action = np.random.choice(N_ACTIONS, p=action_prob)
+        # except:
+        #   print(action_prob)
+
+        state_prob = [P_a[state, next_s, action] for next_s in range(N_STATES)]
+        state_prob /= np.array(state_prob).sum()
+        next_state = np.random.choice(int(N_STATES), p=state_prob)
+
+        agent_traj.append(next_state)
+        state = next_state
+      assert len(agent_traj) == len(traj), "agent length=" + str(len(agent_traj)) + "; expert=" + str(len(traj))
+      agent_trajs.append(agent_traj)
+  
+  svf = np.zeros(N_STATES)
+  for agent_traj in agent_trajs:
+    for step in agent_traj:
+      svf[step] += 1
+  svf = svf/len(agent_trajs)
+
+  return svf
 
 
 def compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True):
@@ -177,7 +218,7 @@ class TorchLinearReward(nn.Module):
         super(TorchLinearReward, self).__init__()
         self.fc1 = nn.Linear(in_features=n_input, out_features=n_h1, bias=True)
         self.fc2 = nn.Linear(in_features=n_h1, out_features=n_h2, bias=True)
-        self.act = nn.ELU()
+        self.act = nn.ReLU()
 
     def forward(self, x):
         x = self.fc1(x)
@@ -220,6 +261,7 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   # init nn model
   nn_r = TorchLinearReward(feat_map.shape[1])
   optim = torch.optim.SGD(nn_r.parameters(), lr=0.02, momentum=0.9, weight_decay=0.9)
+  # optim = torch.optim.SGD(nn_r.parameters(), lr=0.02, momentum=0.9)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
@@ -232,19 +274,23 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     # compute the reward matrix
     rewards = nn_r.forward(features)
     
+    # 1: compute svf with given algorithm
     # compute policy 
-    np_rewards = rewards.detach().numpy()
-    _, policy = value_iteration.value_iteration(P_a, np_rewards, gamma, error=0.01, deterministic=True)
+    # np_rewards = rewards.detach().numpy()
+    # _, policy = value_iteration.value_iteration(P_a, np_rewards, gamma, error=0.01, deterministic=True)
+    # # compute expected svf
+    # mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
     
+    # 2: sample svf from empirical agent trajectories
+    np_rewards = rewards.detach().numpy()
+    _, policy = value_iteration.value_iteration(P_a, np_rewards, gamma, error=0.01, deterministic=False)
     # compute expected svf
-    mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
-    print('mu_d:' + str(mu_D))
-    print('mu_exp:' + str(mu_exp))
+    mu_exp = sample_state_visitation_freq(P_a, gamma, trajs, policy)
     
     # compute gradients on rewards:
     grad_r = torch.tensor(mu_exp - mu_D)
     grad_r = torch.unsqueeze(grad_r, 1)
-    print('reward:' + str(rewards) + '\ngrad_r:' + str(grad_r))
+    # print('reward:' + str(rewards) + '\ngrad_r:' + str(grad_r))
     optim.zero_grad()
     rewards.backward(gradient=grad_r)
 
