@@ -252,16 +252,12 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
   returns
     rewards     Nx1 vector - recoverred state rewards
   """
-
-  # tf.set_random_seed(1)
-  
   N_STATES, _, N_ACTIONS = np.shape(P_a)
   features = torch.tensor(feat_map, dtype=torch.float)
 
   # init nn model
   nn_r = TorchLinearReward(feat_map.shape[1])
   optim = torch.optim.SGD(nn_r.parameters(), lr=0.02, momentum=0.9, weight_decay=0.9)
-  # optim = torch.optim.SGD(nn_r.parameters(), lr=0.02, momentum=0.9)
 
   # find state visitation frequencies using demonstrations
   mu_D = demo_svf(trajs, N_STATES)
@@ -275,22 +271,14 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     rewards = nn_r.forward(features)
     
     # 1: compute svf with given algorithm
-    # compute policy 
-    # np_rewards = rewards.detach().numpy()
-    # _, policy = value_iteration.value_iteration(P_a, np_rewards, gamma, error=0.01, deterministic=True)
-    # # compute expected svf
-    # mu_exp = compute_state_visition_freq(P_a, gamma, trajs, policy, deterministic=True)
-    
-    # 2: sample svf from empirical agent trajectories
     np_rewards = rewards.detach().numpy()
     _, policy = value_iteration.value_iteration(P_a, np_rewards, gamma, error=0.01, deterministic=False)
-    # compute expected svf
+    # 2: sample svf from empirical agent trajectories
     mu_exp = sample_state_visitation_freq(P_a, gamma, trajs, policy)
     
     # compute gradients on rewards:
     grad_r = torch.tensor(mu_exp - mu_D)
     grad_r = torch.unsqueeze(grad_r, 1)
-    # print('reward:' + str(rewards) + '\ngrad_r:' + str(grad_r))
     optim.zero_grad()
     rewards.backward(gradient=grad_r)
 
@@ -298,5 +286,4 @@ def torch_deep_maxent_irl(feat_map, P_a, gamma, trajs, lr, n_iters):
     optim.step()
 
   rewards = nn_r.get_rewards(features)
-  # return sigmoid(normalize(rewards))
   return normalize(rewards)
